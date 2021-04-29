@@ -1,7 +1,7 @@
 # -*- coding:utf8 -*-
 #! /usr/bin/python3
 
-import core
+import command
 import config
 
 
@@ -41,8 +41,8 @@ def parse_args():
 
 def main():
     commands = {
-        'train': core.train,
-        'eval': core.eval,
+        'train': command.train,
+        'eval': command.eval,
     }
     cfg, task = parse_args()
     commands[task](cfg)
