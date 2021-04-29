@@ -1,12 +1,14 @@
 # -*- coding:utf8 -*-
 #! /usr/bin/python3
 
+import argparse
+
 import command
 import config
 
 
 def parse_args():
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
 
     parser.add_argument(
         '--mode',
@@ -17,7 +19,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        '--config',
+        '--config_file',
         type=str,
         default='',
         metavar='FILE_PATH',
@@ -42,7 +44,7 @@ def parse_args():
 def main():
     commands = {
         'train': command.train,
-        'eval': command.eval,
+        #'eval': command.eval,
     }
     cfg, task = parse_args()
     commands[task](cfg)

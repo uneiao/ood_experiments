@@ -39,7 +39,7 @@ class Checkpointer:
         }
         with open(path, 'wb') as f:
             torch.save(checkpoint, f)
-            print(f'Checkpoint has been saved to "{path}".')
+            print('Checkpoint has been saved to "{}".'.format(path))
 
     def save_last(self, model, optimizer, epoch, global_step):
         path = osp.join(self.checkpointdir, 'model_{:09}.pth'.format(global_step + 1))
@@ -60,7 +60,7 @@ class Checkpointer:
         Return starting epoch and global step
         """
 
-        assert osp.exists(path), f'Checkpoint {path} does not exist.'
+        assert osp.exists(path), 'Checkpoint {} does not exist.'.format(path)
         print('Loading checkpoint from {}...'.format(path))
         if not use_cpu:
             checkpoint = torch.load(path)
@@ -89,8 +89,8 @@ class Checkpointer:
         return self.load(path, model, optimizer, use_cpu)
 
     def save_best(self, metric_name, value, checkpoint,  min_is_better):
-        metric_file = os.path.join(self.checkpointdir, f'best_{metric_name}.json')
-        checkpoint_file = os.path.join(self.checkpointdir, f'best_{metric_name}.pth')
+        metric_file = os.path.join(self.checkpointdir, 'best_{}.json'.format(metric_name))
+        checkpoint_file = os.path.join(self.checkpointdir, 'best_{}.pth'.format(metric_name))
 
         now = datetime.now()
         log = {
@@ -118,8 +118,8 @@ class Checkpointer:
             self.save(checkpoint_file, *checkpoint)
 
     def load_best(self, metric_name, model, optimizer, use_cpu=False):
-        metric_file = os.path.join(self.checkpointdir, f'best_{metric_name}.json')
-        checkpoint_file = os.path.join(self.checkpointdir, f'best_{metric_name}.pth')
+        metric_file = os.path.join(self.checkpointdir, 'best_{}.json'.format(metric_name))
+        checkpoint_file = os.path.join(self.checkpointdir, 'best_{}.pth'.format(metric_name))
 
         assert osp.exists(metric_file), 'Metric file does not exist'
         assert osp.exists(checkpoint_file), 'checkpoint file does not exist'

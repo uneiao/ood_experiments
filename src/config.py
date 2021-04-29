@@ -1,8 +1,8 @@
-import yacs
+from yacs.config import CfgNode
 
 
 def init_config():
-    cfg = yacs.config.CfgNode({
+    cfg = CfgNode({
         'exp_name': 'default',
         'model_name': 'laplace',
         'resume': True,
