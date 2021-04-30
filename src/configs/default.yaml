@@ -1,0 +1,7 @@
+train:
+  print_every: 1000
+  save_every: 50000
+  eval_every: 50000
+
+model:
+  z_dim: 784

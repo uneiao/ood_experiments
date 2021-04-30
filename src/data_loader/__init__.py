@@ -1,3 +1,6 @@
+from torch.utils.data import DataLoader
+from torchvision import transforms
+
 from .mnist import CustomizedMNIST
 
 
@@ -7,8 +10,12 @@ def get_dataset(cfg, mode):
     assert mode in ['train', 'val', 'test']
     if cfg.dataset == 'mnist':
         return CustomizedMNIST(
-            cfg.dataset_roots.mnist,
+            cfg.dataset_path.mnist,
             train=True if mode == 'train' else False,
+            download=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+            ]),
         )
 
     raise ValueError('Unrecognized dataset name.')

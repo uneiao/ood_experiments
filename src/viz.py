@@ -7,7 +7,7 @@ from torch.utils.data import Subset, DataLoader
 from torchvision.utils import make_grid
 
 
-def get_vislogger():
+def get_vislogger(config):
     return VizLog()
 
 

@@ -2,6 +2,7 @@ import os
 import os.path as osp
 import time
 
+import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn.utils import clip_grad_norm_
@@ -64,15 +65,13 @@ def train(cfg):
             break
 
         start = time.perf_counter()
-        for i, data in enumerate(trainloader):
-
+        for i, (data, _lb) in enumerate(trainloader):
             end = time.perf_counter()
             data_time = end - start
             start = end
 
             model.train()
-            imgs = data
-            imgs = imgs.to(cfg.device)
+            imgs = data.to(cfg.device)
             loss, log = model(imgs, global_step)
             # In case of using DataParallel
             loss = loss.mean()

@@ -33,7 +33,7 @@ class Checkpointer:
             model = model.module
         checkpoint = {
             'model': model.state_dict(),
-            'optimizer': optimizer.state_dict() if optimizer_fg else None,
+            'optimizer': optimizer.state_dict() if optimizer else None,
             'epoch': epoch,
             'global_step': global_step
         }
@@ -170,3 +170,13 @@ class MetricLogger:
 
     def __setitem__(self, key, item):
         self.values[key].update(item)
+
+
+def set_seed(cfg):
+    # Seed
+    import torch
+    torch.manual_seed(cfg.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    import numpy as np
+    np.random.seed(cfg.seed)

@@ -5,6 +5,7 @@ import argparse
 
 import command
 import config
+import utils
 
 
 def parse_args():
@@ -40,6 +41,8 @@ def parse_args():
     if args.opts:
         cfg.merge_from_list(args.opts)
 
+    return cfg, args.mode 
+
 
 def main():
     commands = {
@@ -47,6 +50,7 @@ def main():
         #'eval': command.eval,
     }
     cfg, task = parse_args()
+    utils.set_seed(cfg)
     commands[task](cfg)
 
 

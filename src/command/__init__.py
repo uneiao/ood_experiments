@@ -1,1 +1,1 @@
-from . import train
+from .train import train

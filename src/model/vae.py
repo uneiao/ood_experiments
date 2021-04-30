@@ -6,8 +6,9 @@ from torch.nn import functional as F
 
 
 class BaseVAE(nn.Module):
+
     def __init__(self, cfg):
-        super(BaseVAE, self).__init__()
+        nn.Module.__init__(self)
 
         self.cfg = cfg
 
@@ -31,32 +32,36 @@ class BaseVAE(nn.Module):
         h3 = F.relu(self.fc3(z))
         return torch.sigmoid(self.fc4(h3))
 
-    def likelihood(x, x_p):
-        return Normal(x_p, self.cfg.model.recon_std).logprob(x)
+    def likelihood(self, x, x_p):
+        return Normal(x_p, self.cfg.model.recon_std).log_prob(x)
 
-    def forward(self, x):
-        z, z_posterior = self.encode(x)
+    def forward(self, x, global_steps):
+        # B x H x W
+        B, C, H, W = x.shape
+
+        z, z_posterior = self.encode(x.view(B, -1))
 
         x_recon = self.decode(z)
 
         kl = kl_divergence(z_posterior, self.z_prior)
 
-        log_like = self.likelihood(x, x_recon)
+        log_like = self.likelihood(x.view(B, -1), x_recon)
         elbo = log_like - kl
-        loss = -elbo.mean()
+        loss = -elbo
 
         log = {
             'kl': kl.flatten(start_dim=1).sum(dim=1),
             'log_like': log_like.flatten(start_dim=1).sum(dim=1),
             'imgs': x,
-            'y': x_recon,
+            'y': x_recon.view(B, C, H, W),
             'loss': loss,
+            'elbo': elbo,
         }
 
-        return x_recon, kl, elbo, log
+        return loss, log
 
 
-class LaplaceVAE(nn.Module):
+class LaplaceVAE(BaseVAE):
 
     @property
     def z_prior(self):
