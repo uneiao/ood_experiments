@@ -35,7 +35,7 @@ class BaseVAE(nn.Module):
     def likelihood(self, x, x_p):
         return Normal(x_p, self.cfg.vae.recon_std).log_prob(x)
 
-    def forward(self, x, global_steps):
+    def forward(self, x, global_step=0):
         # B x H x W
         B, C, H, W = x.shape
 

@@ -9,6 +9,8 @@ import numpy as np
 import torch
 from torch.utils.data import Subset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.utils import make_grid
+
 from utils import MetricLogger
 
 
@@ -23,8 +25,8 @@ class PerfEvaluator:
     @torch.no_grad()
     def test_eval(self, model, testset, device, evaldir, info):
         result_dict = self.eval_targets(
-            model, testset, eval_cfg.test.batch_size,
-            eval_cfg.test.num_workers, device, num_samples=None
+            model, testset, self.cfg.test.batch_size,
+            self.cfg.test.num_workers, device, num_samples=None
         )
         os.makedirs(evaldir, exist_ok=True)
         path = osp.join(
@@ -51,12 +53,18 @@ class PerfEvaluator:
         :return: result_dict
         """
         result_dict = self.eval_targets(
-            model, valset, eval_cfg.train.batch_size, eval_cfg.train.num_workers,
+            model, valset, self.cfg.train.batch_size, self.cfg.train.num_workers,
             device, num_samples=None
         )
         sparseness = result_dict['sparseness']
 
         writer.add_scalar('val/sparseness', sparseness, global_step)
+
+        grid_image = make_grid(result_dict['imgs'], 5, normalize=False, pad_value=1)
+        writer.add_image('{}/1-image'.format('val'), grid_image, global_step)
+
+        grid_image = make_grid(result_dict['y'], 5, normalize=False, pad_value=1)
+        writer.add_image('{}/2-reconstruction'.format('val'), grid_image, global_step)
 
         return result_dict
 
@@ -85,24 +93,33 @@ class PerfEvaluator:
             dataset, batch_size=batch_size,
             num_workers=num_workers, shuffle=False)
 
+        last_imgs = None
+        last_ys = None
+        all_z = []
         model.eval()
         with torch.no_grad():
             pbar = tqdm(total=len(dataloader))
-            for i, imgs in enumerate(dataloader):
+            for i, (imgs, lbs) in enumerate(dataloader):
+                last_imgs = imgs.detach().cpu()
                 imgs = imgs.to(device)
 
                 loss, log = \
                     model(imgs, global_step=100000000)
 
-                # compute sparseness
-                avg_count_sparseness = get_avg_count_sparseness(log['z'])
+                last_ys = log['y'].detach().cpu()
+                all_z.extend(log['z'].detach().cpu())
 
                 pbar.update(1)
+
+            # compute sparseness
+            avg_count_sparseness = get_avg_count_sparseness(torch.cat(all_z))
 
         model.train()
 
         return {
             'sparseness': avg_count_sparseness,
+            'imgs': last_imgs,
+            'y': last_ys,
         }
 
     def save_to_json(self, result_dict, json_path, info):

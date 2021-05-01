@@ -19,7 +19,7 @@ def train(cfg):
 
     print('Experiment name:', cfg.exp_name)
     print('Dataset:', cfg.dataset)
-    print('Model name:', cfg.model)
+    print('Model name:', cfg.model_name)
     print('Resume:', cfg.resume)
     if cfg.resume:
         print('Checkpoint:', cfg.resume_ckpt if cfg.resume_ckpt else 'last checkpoint')
@@ -89,7 +89,7 @@ def train(cfg):
             metric_logger.update(batch_time=batch_time)
             metric_logger.update(loss=loss.item())
 
-            if (global_step) % cfg.train.print_every == 0:
+            if global_step % cfg.train.print_every == 0:
                 start = time.perf_counter()
                 log.update({
                     'loss': metric_logger['loss'].median,
@@ -102,12 +102,12 @@ def train(cfg):
                         cfg.exp_name, epoch + 1, i + 1, len(trainloader), global_step, metric_logger['loss'].median,
                         metric_logger['batch_time'].avg, metric_logger['data_time'].avg, end - start))
 
-            if (global_step) % cfg.train.save_every == 0:
+            if global_step % cfg.train.save_every == 0:
                 start = time.perf_counter()
                 checkpointer.save_last(model, optimizer, epoch, global_step)
                 print('Saving checkpoint takes {:.4f}s.'.format(time.perf_counter() - start))
 
-            if (global_step) % cfg.train.eval_every == 0 and cfg.train.eval_on:
+            if global_step % cfg.train.eval_every == 0 and cfg.train.eval_on:
                 print('Validating...')
                 start = time.perf_counter()
                 checkpoint = [model, optimizer, epoch, global_step]

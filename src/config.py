@@ -44,7 +44,6 @@ def init_config():
         },
         'val': {
             'batch_size': 512,
-
             'num_workers': 4,
         },
 
