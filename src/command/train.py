@@ -33,8 +33,8 @@ def train(cfg):
 
     trainloader = get_dataloader(cfg, 'train')
     if cfg.train.eval_on:
-        valset = get_dataset(cfg, 'val')
-        # valloader = get_dataloader(cfg, 'val')
+        # valset = get_dataset(cfg, 'val')
+        valloader = get_dataloader(cfg, 'val')
         # evaluator = get_evaluator(cfg)
     model = get_model(cfg)
     model = model.to(cfg.device)

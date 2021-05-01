@@ -41,6 +41,11 @@ def init_config():
             'save_every': 10000,
             'eval_every': 10000,
         },
+        'val': {
+            'batch_size': 512,
+
+            'num_workers': 4,
+        },
 
         'model': {
             'image_shape': (28, 28),
