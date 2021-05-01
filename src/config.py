@@ -3,6 +3,7 @@ from yacs.config import CfgNode
 
 def init_config():
     cfg = CfgNode({
+        # global settings
         'seed': 1,
         'exp_name': 'default',
         'model_name': 'laplace',
@@ -19,9 +20,9 @@ def init_config():
             'mnist': '../data/mnist',
         },
 
-        # For engine.train
+        # For training/eval
         'train': {
-            'eval_on': False,
+            'eval_on': True,
             'batch_size': 512,
             'max_epochs': 5000,
             'max_steps': 10000000,
@@ -47,10 +48,12 @@ def init_config():
             'num_workers': 4,
         },
 
-        'model': {
+        # settings of models
+        'vae': {
             'image_shape': (28, 28),
             'z_dim': 784,
             'recon_std': 0.1,
         }
+
     })
     return cfg

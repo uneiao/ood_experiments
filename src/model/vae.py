@@ -16,9 +16,9 @@ class BaseVAE(nn.Module):
         self.register_buffer('prior_std', torch.ones(1))
 
         self.fc1 = nn.Linear(784, 400)
-        self.fc21 = nn.Linear(400, self.cfg.model.z_dim)
-        self.fc22 = nn.Linear(400, self.cfg.model.z_dim)
-        self.fc3 = nn.Linear(self.cfg.model.z_dim, 400)
+        self.fc21 = nn.Linear(400, self.cfg.vae.z_dim)
+        self.fc22 = nn.Linear(400, self.cfg.vae.z_dim)
+        self.fc3 = nn.Linear(self.cfg.vae.z_dim, 400)
         self.fc4 = nn.Linear(400, 784)
 
     @property
@@ -33,7 +33,7 @@ class BaseVAE(nn.Module):
         return torch.sigmoid(self.fc4(h3))
 
     def likelihood(self, x, x_p):
-        return Normal(x_p, self.cfg.model.recon_std).log_prob(x)
+        return Normal(x_p, self.cfg.vae.recon_std).log_prob(x)
 
     def forward(self, x, global_steps):
         # B x H x W
@@ -56,6 +56,7 @@ class BaseVAE(nn.Module):
             'y': x_recon.view(B, C, H, W),
             'loss': loss,
             'elbo': elbo,
+            'z': z,
         }
 
         return loss, log

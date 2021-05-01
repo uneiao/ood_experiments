@@ -12,6 +12,10 @@ from torch.utils.tensorboard import SummaryWriter
 from utils import MetricLogger
 
 
+def get_evaluator(cfg):
+    return PerfEvaluator(cfg)
+
+
 class PerfEvaluator:
     def __init__(self, cfg):
         self.cfg = cfg

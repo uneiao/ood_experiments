@@ -9,7 +9,7 @@ from torch.nn.utils import clip_grad_norm_
 
 from model import get_model
 from data_loader import get_dataset, get_dataloader
-#from evaluator import get_evaluator
+from evaluator import get_evaluator
 from solver import get_optimizer
 from utils import Checkpointer, MetricLogger
 from viz import get_vislogger
@@ -33,9 +33,9 @@ def train(cfg):
 
     trainloader = get_dataloader(cfg, 'train')
     if cfg.train.eval_on:
-        # valset = get_dataset(cfg, 'val')
-        valloader = get_dataloader(cfg, 'val')
-        # evaluator = get_evaluator(cfg)
+        valset = get_dataset(cfg, 'val')
+        # valloader = get_dataloader(cfg, 'val')
+        evaluator = get_evaluator(cfg)
     model = get_model(cfg)
     model = model.to(cfg.device)
     checkpointer = Checkpointer(osp.join(cfg.checkpointdir, cfg.exp_name), max_num=cfg.train.max_ckpt)
@@ -111,7 +111,10 @@ def train(cfg):
                 print('Validating...')
                 start = time.perf_counter()
                 checkpoint = [model, optimizer, epoch, global_step]
-                #evaluator.train_eval(model, valset, valset.bb_path, writer, global_step, cfg.device, checkpoint, checkpointer)
+                evaluator.train_eval(
+                    model, valset,
+                    writer, global_step,
+                    cfg.device, checkpoint, checkpointer)
                 print('Validation takes {:.4f}s.'.format(time.perf_counter() - start))
 
             start = time.perf_counter()

@@ -3,5 +3,5 @@ train:
   save_every: 50000
   eval_every: 50000
 
-model:
+vae:
   z_dim: 784
