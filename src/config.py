@@ -54,5 +54,15 @@ def init_config():
             'recon_std': 0.1,
         }
 
+        'vsc': {
+            'z_dim': 784,
+            'tonolini_spike_c_start_step': 0,
+            'tonolini_spike_c_end_step': 500000,
+            'tonolini_spike_c_start_value': 1,
+            'tonolini_spike_c_end_value': 10000,
+
+            'prior_spike_prob': 0.1,
+        }
+
     })
     return cfg
