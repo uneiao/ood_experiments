@@ -1,0 +1,8 @@
+exp_name: vsc
+model_name: vsc
+
+dataset: mnist
+
+vsc:
+  z_dim: 784
+  recon_std: 0.1

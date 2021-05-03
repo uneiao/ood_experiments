@@ -13,7 +13,7 @@ class BaseVAE(nn.Module):
         self.cfg = cfg
 
         self.register_buffer('prior_mean', torch.zeros(1))
-        self.register_buffer('prior_std', torch.ones(1))
+        self.register_buffer('prior_std', torch.ones(1) * self.cfg.vae.prior_std)
 
         self.fc1 = nn.Linear(784, 400)
         self.fc21 = nn.Linear(400, self.cfg.vae.z_dim)

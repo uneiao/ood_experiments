@@ -24,7 +24,7 @@ def init_config():
         'train': {
             'eval_on': True,
             'batch_size': 512,
-            'max_epochs': 5000,
+            'max_epochs': 10000,
             'max_steps': 10000000,
             'learning_rate': 1e-5,
 
@@ -52,10 +52,12 @@ def init_config():
             'image_shape': (28, 28),
             'z_dim': 784,
             'recon_std': 0.1,
-        }
+        },
 
         'vsc': {
+            'image_shape': (28, 28),
             'z_dim': 784,
+            'recon_std': 0.1,
             'tonolini_spike_c_start_step': 0,
             'tonolini_spike_c_end_step': 500000,
             'tonolini_spike_c_start_value': 1,

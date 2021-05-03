@@ -11,6 +11,8 @@ from algo_utils import linear_annealing, kl_divergence_bern_bern, \
 class VSC(nn.Module):
 
     def __init__(self, cfg):
+        nn.Module.__init__(self)
+
         self.cfg = cfg
 
         self.register_buffer('prior_slab_mean', torch.zeros(1))
@@ -33,7 +35,7 @@ class VSC(nn.Module):
         self.register_buffer(
             'prior_spike_prob', torch.tensor(self.cfg.vsc.prior_spike_prob))
 
-    def anneal(self, global_step):
+    def annealing(self, global_step):
         self.tonolini_spike_c = linear_annealing(
             self.tonolini_spike_c.device, global_step,
             self.cfg.vsc.tonolini_spike_c_start_step,
@@ -74,7 +76,7 @@ class VSC(nn.Module):
         return Normal(x_p, self.cfg.vae.recon_std).log_prob(x)
 
     def forward(self, x, global_step=0):
-        self.annealing(golbal_step)
+        self.annealing(global_step)
         # B x H x W
         B, C, H, W = x.shape
 
@@ -85,7 +87,7 @@ class VSC(nn.Module):
         kl1 = kl_divergence_spike_slab(
             z_slab_posterior, self.z_slab_prior, spike_posterior, self.prior_spike_prob)
         kl2 = kl_divergence_bern_bern(spike_posterior, self.prior_spike_prob)
-        kl = kl1 + kl2
+        kl = kl2 + kl1
 
         log_like = self.likelihood(x.view(B, -1), x_recon)
         elbo = log_like - kl

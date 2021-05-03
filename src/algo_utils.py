@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from torch.distributions import Normal, kl_divergence
 
 
 def linear_annealing(device, step, start_step, end_step, start_value, end_value):
@@ -32,15 +33,15 @@ def kl_divergence_bern_bern(prob_p1, prob_p2, eps=1e-15):
     :param prob_p2
     :return: kl divergence
     """
-    kl = prob_b1 * (torch.log(prob_b1 + eps) - torch.log(prob_p2 + eps)) + \
-         (1 - prob_b1) * (torch.log(1 - prob_b1 + eps) - torch.log(1 - prob_p2 + eps))
+    kl = prob_p1 * (torch.log(prob_p1 + eps) - torch.log(prob_p2 + eps)) + \
+         (1 - prob_p1) * (torch.log(1 - prob_p1 + eps) - torch.log(1 - prob_p2 + eps))
 
     return kl
 
 
 def kl_divergence_spike_slab(normal_post, normal_prior, spike_post, spike_prior):
-    spike_part = (1 - spike_post).mul(torch.log((1 - spike_post) \
+    spike_part = (1 - spike_post).mul(torch.log((1 - spike_post + 1e-6) \
         / (1 - spike_prior))) \
-        + spike_post.mul(torch.log(spike_post / spike_prior))
+        + spike_post.mul(torch.log(spike_post / spike_prior + 1e-6))
 
     return spike_post * kl_divergence(normal_post, normal_prior) + spike_part

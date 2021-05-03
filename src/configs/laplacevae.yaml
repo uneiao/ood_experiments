@@ -1,0 +1,9 @@
+exp_name: laplace_vae
+model_name: laplace
+
+dataset: mnist
+
+vae:
+  z_dim: 784
+  prior_std: 0.1
+  recon_std: 0.1
