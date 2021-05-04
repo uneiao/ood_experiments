@@ -1,6 +1,11 @@
+import math
+
 import torch
 import torch.nn.functional as F
 from torch.distributions import Normal, kl_divergence
+
+
+EPS = 1e-15
 
 
 def linear_annealing(device, step, start_step, end_step, start_value, end_value):
@@ -26,7 +31,7 @@ def linear_annealing(device, step, start_step, end_step, start_value, end_value)
     return x
 
 
-def kl_divergence_bern_bern(prob_p1, prob_p2, eps=1e-15):
+def kl_divergence_bern_bern(prob_p1, prob_p2, eps=EPS):
     """
     Compute kl divergence of two Bernoulli distributions
     :param prob_p1
@@ -40,8 +45,22 @@ def kl_divergence_bern_bern(prob_p1, prob_p2, eps=1e-15):
 
 
 def kl_divergence_spike_slab(normal_post, normal_prior, spike_post, spike_prior):
-    spike_part = (1 - spike_post).mul(torch.log((1 - spike_post + 1e-6) \
+    spike_part = (1 - spike_post).mul(torch.log((1 - spike_post + EPS) \
         / (1 - spike_prior))) \
-        + spike_post.mul(torch.log(spike_post / spike_prior + 1e-6))
+        + spike_post.mul(torch.log(spike_post / spike_prior + EPS))
 
     return spike_post * kl_divergence(normal_post, normal_prior) + spike_part
+
+
+def hoyer_metric(zs):
+    '''
+    see section 6.3 of http://proceedings.mlr.press/v97/mathieu19a/mathieu19a.pdf
+    '''
+    latent_dim = zs.size(-1)
+    zs = zs / zs.std(0)
+    l1_l2 = (zs.abs().sum(-1) / zs.pow(2).sum(-1).sqrt()).mean()
+    return (math.sqrt(latent_dim) - l1_l2) / (math.sqrt(latent_dim) - 1)
+
+
+def avg_count_sparsity(z, eps=1e-5):
+    return (z.abs() < eps).sum() / torch.ones(z.shape).sum()

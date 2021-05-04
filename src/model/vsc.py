@@ -87,15 +87,15 @@ class VSC(nn.Module):
         kl1 = kl_divergence_spike_slab(
             z_slab_posterior, self.z_slab_prior, spike_posterior, self.prior_spike_prob)
         kl2 = kl_divergence_bern_bern(spike_posterior, self.prior_spike_prob)
-        kl = kl2 + kl1
+        kl = kl1.flatten(start_dim=1).sum(1) + kl2.flatten(start_dim=1).sum(1)
 
-        log_like = self.likelihood(x.view(B, -1), x_recon)
-        elbo = log_like - kl
+        log_like = self.likelihood(x.view(B, -1), x_recon).flatten(start_dim=1).sum(1)
+        elbo = log_like - self.cfg.vsc.beta * kl
         loss = -elbo
 
         log = {
-            'kl': kl.flatten(start_dim=1).sum(dim=1),
-            'log_like': log_like.flatten(start_dim=1).sum(dim=1),
+            'kl': kl,
+            'log_like': log_like,
             'imgs': x,
             'y': x_recon.view(B, C, H, W),
             'loss': loss,

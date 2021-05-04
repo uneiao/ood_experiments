@@ -64,6 +64,7 @@ def init_config():
             'tonolini_spike_c_end_value': 10000,
 
             'prior_spike_prob': 0.1,
+            'beta': 1,
         }
 
     })

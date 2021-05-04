@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 
 from utils import MetricLogger
+import algo_utils
 
 
 def get_evaluator(cfg):
@@ -56,9 +57,11 @@ class PerfEvaluator:
             model, valset, self.cfg.train.batch_size, self.cfg.train.num_workers,
             device, num_samples=None
         )
-        sparseness = result_dict['sparseness']
+        count_sparsity = result_dict['count_sparsity']
+        hoyer = result_dict['hoyer']
 
-        writer.add_scalar('val/sparseness', sparseness, global_step)
+        writer.add_scalar('val/count_sparsity', count_sparsity, global_step)
+        writer.add_scalar('val/hoyer', hoyer, global_step)
 
         grid_image = make_grid(result_dict['imgs'], 5, normalize=False, pad_value=1)
         writer.add_image('{}/1-image'.format('val'), grid_image, global_step)
@@ -107,17 +110,19 @@ class PerfEvaluator:
                     model(imgs, global_step=100000000)
 
                 last_ys = log['y'].detach().cpu()
-                all_z.extend(log['z'].detach().cpu())
+                all_z.extend(log['z'].unsqueeze(dim=0).detach().cpu())
 
                 pbar.update(1)
 
-            # compute sparseness
-            avg_count_sparseness = get_avg_count_sparseness(torch.cat(all_z))
+            # compute sparsity
+            count_sparsity = algo_utils.avg_count_sparsity(torch.cat(all_z))
+            hoyer = algo_utils.hoyer_metric(torch.cat(all_z))
 
         model.train()
 
         return {
-            'sparseness': avg_count_sparseness,
+            'hoyer': hoyer,
+            'count_sparsity': count_sparsity,
             'imgs': last_imgs,
             'y': last_ys,
         }
@@ -137,7 +142,8 @@ class PerfEvaluator:
         tosave = OrderedDict([
             ('date', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('info', info),
-            ('sparseness', list(result_dict['sparseness'])),
+            ('count_sparsity', list(result_dict['count_sparsity'])),
+            ('hoyer', list(result_dict['hoyer'])),
         ])
         with open(json_path, 'w') as f:
             json.dump(tosave, f, indent=2)
@@ -146,7 +152,3 @@ class PerfEvaluator:
 
     def print_result(self, result_dict, files):
         pass
-
-
-def get_avg_count_sparseness(z, eps=1e-5):
-    return (z.abs() < eps).sum() / torch.ones(z.shape).sum()
