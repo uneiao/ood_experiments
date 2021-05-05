@@ -19,34 +19,22 @@ class VSC(nn.Module):
         self.register_buffer('prior_slab_std', torch.ones(1))
 
         self.enc = nn.Sequential(
-            nn.Conv2d(3, 16, 4, 2, 1),
+            nn.Conv2d(1, 16, 4, 2, 1),
             nn.CELU(),
             nn.GroupNorm(4, 16),
             nn.Conv2d(16, 64, 4, 2, 1),
             nn.CELU(),
             nn.GroupNorm(8, 64),
-            nn.Conv2d(64, 128, 3, 2, 1),
+            nn.Conv2d(64, 128, 3, 2),
             nn.CELU(),
             nn.GroupNorm(16, 128),
-            nn.Conv2d(128, 256, 3, 1, 1),
+            nn.Conv2d(128, 256, 3, 1),
             nn.CELU(),
             nn.GroupNorm(32, 256),
         )
-        #self.fc1 = nn.Linear(784, 400)
         self.fc21 = nn.Linear(256, self.cfg.vsc.z_dim)
         self.fc22 = nn.Linear(256, self.cfg.vsc.z_dim)
         self.fc23 = nn.Linear(256, self.cfg.vsc.z_dim)
-        #self.fc3 = nn.Linear(self.cfg.vsc.z_dim, 400)
-        #self.fc4 = nn.Linear(400, 784)
-
-        #self.fc1 = nn.Linear(784, 400)
-        #self.fc21 = nn.Linear(400, self.cfg.vsc.z_dim)
-        #self.fc22 = nn.Linear(400, self.cfg.vsc.z_dim)
-        #self.fc3 = nn.Linear(self.cfg.vsc.z_dim, 400)
-        #self.fc4 = nn.Linear(400, 784)
-
-        #self.fc23 = nn.Linear(400, self.cfg.vsc.z_dim)
-
 
         self.dec = nn.Sequential(
             nn.Conv2d(self.cfg.vsc.z_dim, 256, 1),
@@ -118,7 +106,6 @@ class VSC(nn.Module):
         return Normal(self.prior_slab_mean, self.prior_slab_std)
 
     def encode(self, x):
-        #h1 = F.relu(self.fc1(x))
         h1 = F.relu(self.enc(x)).view(x.size(0), -1)
 
         location, scale = self.fc21(h1), self.fc22(h1)
@@ -140,8 +127,6 @@ class VSC(nn.Module):
         return z, z_slab_posterior, spike_posterior
 
     def decode(self, z):
-        #h3 = F.relu(self.fc3(z))
-        #return torch.sigmoid(self.fc4(h3))
         x = self.dec(z.view(z.size(0), -1, 1, 1))
         return torch.sigmoid(x)
 
@@ -153,7 +138,7 @@ class VSC(nn.Module):
         # B x H x W
         B, C, H, W = x.shape
 
-        z, z_slab_posterior, spike_posterior = self.encode(x.view(B, -1))
+        z, z_slab_posterior, spike_posterior = self.encode(x)
 
         x_recon = self.decode(z)
 
@@ -162,7 +147,7 @@ class VSC(nn.Module):
         kl2 = kl_divergence_bern_bern(spike_posterior, self.prior_spike_prob)
         kl = kl1.flatten(start_dim=1).sum(1) + kl2.flatten(start_dim=1).sum(1)
 
-        log_like = self.likelihood(x.view(B, -1), x_recon).flatten(start_dim=1).sum(1)
+        log_like = self.likelihood(x, x_recon).flatten(start_dim=1).sum(1)
         elbo = log_like - self.cfg.vsc.beta * kl
         loss = -elbo
 
