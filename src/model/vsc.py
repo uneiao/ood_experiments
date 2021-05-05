@@ -49,7 +49,7 @@ class VSC(nn.Module):
 
 
         self.dec = nn.Sequential(
-            nn.Conv2d(arch.z_what_dim, 256, 1),
+            nn.Conv2d(self.cfg.vsc.z_dim, 256, 1),
             nn.CELU(),
             nn.GroupNorm(16, 256),
 
