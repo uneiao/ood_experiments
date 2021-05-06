@@ -19,6 +19,9 @@ def init_config():
         'dataset_path': {
             'mnist': '../data/mnist',
         },
+        'mnist': {
+            'filtering_class': [1, 4, 7, ],
+        },
 
         # For training/eval
         'train': {
@@ -56,12 +59,12 @@ def init_config():
 
         'vsc': {
             'image_shape': (28, 28),
-            'z_dim': 784,
+            'z_dim': 64,
             'recon_std': 0.1,
             'tonolini_spike_c_start_step': 0,
-            'tonolini_spike_c_end_step': 500000,
+            'tonolini_spike_c_end_step': 10000,
             'tonolini_spike_c_start_value': 1,
-            'tonolini_spike_c_end_value': 10000,
+            'tonolini_spike_c_end_value': 10001,
 
             'prior_spike_prob': 0.1,
             'beta': 1,

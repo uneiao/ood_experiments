@@ -22,6 +22,8 @@ class CustomizedMNIST(torchvision.datasets.MNIST):
 
         split = kwargs.pop('train_val_split', [50000, 10000])
 
+        filtering_class = kwargs.pop('filtering_class', [])
+
         if mode in ['train', 'val']:
             kwargs['train'] = True
 
@@ -33,3 +35,9 @@ class CustomizedMNIST(torchvision.datasets.MNIST):
             )
             indices = _train.indices if mode == 'train' else _val.indices
             self.data, self.targets = self.data[indices], self.targets[indices]
+
+        if mode == 'train' and len(filtering_class):
+            mask = [1 if self.targets[i] in filtering_class else 0 for i in range(len(self.targets))]
+            mask = torch.tensor(mask, dtype=bool)
+            self.targets = self.targets[torch.nonzero(mask)].squeeze()
+            self.data = self.data[torch.nonzero(mask)].squeeze()

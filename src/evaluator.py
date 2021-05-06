@@ -59,15 +59,32 @@ class PerfEvaluator:
         )
         count_sparsity = result_dict['count_sparsity']
         hoyer = result_dict['hoyer']
+        z = result_dict['z'].numpy()
+        labels = result_dict['labels'].numpy()
+
+        z_sp = (np.absolute(z) > algo_utils.EPS).astype(np.float)
+        z_hist = np.zeros((10, z.shape[-1]))
+        for i in self.cfg.mnist.filtering_class:
+            z_i = z_sp[labels == i, :]
+            pat = np.mean(z_i, axis=0)
+            z_hist[i, :] = pat
+
+        for i in set(range(10)) - set(self.cfg.mnist.filtering_class):
+            z_i = z_sp[labels == i, :]
+            pat = np.mean(z_i, axis=0)
+            z_hist[i, :] = pat
+        z_hist = np.expand_dims(z_hist, axis=0)
 
         writer.add_scalar('val/count_sparsity', count_sparsity, global_step)
         writer.add_scalar('val/hoyer', hoyer, global_step)
 
-        grid_image = make_grid(result_dict['imgs'], 5, normalize=False, pad_value=1)
+        grid_image = make_grid(result_dict['imgs'][:100], 5, normalize=False, pad_value=1)
         writer.add_image('{}/1-image'.format('val'), grid_image, global_step)
 
-        grid_image = make_grid(result_dict['y'], 5, normalize=False, pad_value=1)
+        grid_image = make_grid(result_dict['y'][:100], 5, normalize=False, pad_value=1)
         writer.add_image('{}/2-reconstruction'.format('val'), grid_image, global_step)
+
+        writer.add_image('{}/3-z_histogram'.format('val'), z_hist, global_step)
 
         return result_dict
 
@@ -99,6 +116,7 @@ class PerfEvaluator:
         last_imgs = None
         last_ys = None
         all_z = []
+        labels = []
         model.eval()
         with torch.no_grad():
             pbar = tqdm(total=len(dataloader))
@@ -111,6 +129,7 @@ class PerfEvaluator:
 
                 last_ys = log['y'].detach().cpu()
                 all_z.extend(log['z'].unsqueeze(dim=0).detach().cpu())
+                labels.append(lbs.detach().cpu())
 
                 pbar.update(1)
 
@@ -125,7 +144,10 @@ class PerfEvaluator:
             'count_sparsity': count_sparsity,
             'imgs': last_imgs,
             'y': last_ys,
+            'z': torch.cat(all_z),
+            'labels': torch.cat(labels),
         }
+
 
     def save_to_json(self, result_dict, json_path, info):
         """
