@@ -20,14 +20,14 @@ def init_config():
             'mnist': '../data/mnist',
         },
         'mnist': {
-            'filtering_class': [1, 4, 7, ],
+            'filtering_class': [0, 1, 2, 3, 4, ],
         },
 
         # For training/eval
         'train': {
             'eval_on': True,
             'batch_size': 512,
-            'max_epochs': 10000,
+            'max_epochs': 20000,
             'max_steps': 10000000,
             'learning_rate': 1e-5,
 
@@ -61,10 +61,15 @@ def init_config():
             'image_shape': (28, 28),
             'z_dim': 64,
             'recon_std': 0.1,
-            'tonolini_spike_c_start_step': 0,
-            'tonolini_spike_c_end_step': 10000,
-            'tonolini_spike_c_start_value': 1,
-            'tonolini_spike_c_end_value': 10001,
+            'tonolini_spike_c_start_step': 20000,
+            'tonolini_spike_c_end_step': 160000,
+            'tonolini_spike_c_start_value': 50,
+            'tonolini_spike_c_end_value': 1000,
+
+            'tonolini_lambda_start_step': 160000,
+            'tonolini_lambda_end_step': 200000,
+            'tonolini_lambda_start_value': 0.0,
+            'tonolini_lambda_end_value': 1.0,
 
             'prior_spike_prob': 0.1,
             'beta': 1,

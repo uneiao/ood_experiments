@@ -55,7 +55,7 @@ class PerfEvaluator:
         """
         result_dict = self.eval_targets(
             model, valset, self.cfg.train.batch_size, self.cfg.train.num_workers,
-            device, num_samples=None
+            device, num_samples=None, global_step=global_step,
         )
         count_sparsity = result_dict['count_sparsity']
         hoyer = result_dict['hoyer']
@@ -96,6 +96,7 @@ class PerfEvaluator:
             num_workers,
             device,
             num_samples=None,
+            global_step=0,
     ):
         """
         Evaluate target metrics.
@@ -125,7 +126,7 @@ class PerfEvaluator:
                 imgs = imgs.to(device)
 
                 loss, log = \
-                    model(imgs, global_step=100000000)
+                    model(imgs, global_step=global_step or 100000000)
 
                 last_ys = log['y'].detach().cpu()
                 all_z.extend(log['z'].unsqueeze(dim=0).detach().cpu())

@@ -45,8 +45,8 @@ def kl_divergence_bern_bern(prob_p1, prob_p2, eps=EPS):
 
 
 def kl_divergence_spike_slab(normal_post, normal_prior, spike_post, spike_prior):
-    spike_part = (1 - spike_post).mul(torch.log((1 - spike_post + EPS) \
-        / (1 - spike_prior))) \
+    spike_part = (1 - spike_post).mul(torch.log((1 - spike_post) \
+        / (1 - spike_prior) + EPS)) \
         + spike_post.mul(torch.log(spike_post / spike_prior + EPS))
 
     return spike_post * kl_divergence(normal_post, normal_prior) + spike_part
