@@ -13,7 +13,7 @@ def get_dataset(cfg, mode):
         return CustomizedMNIST(
             cfg.dataset_path.mnist,
             mode=mode,
-            filtering_class=cfg.mnist.filtering_class,
+            filtering_class=cfg.mnist.in_class,
             download=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),

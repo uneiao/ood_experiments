@@ -14,13 +14,15 @@ def init_config():
         'device': 'cuda:0',
         'logdir': '../output/logs/',
         'checkpointdir': '../output/checkpoints/',
+        'evaldir': '../output/eval/',
 
         'dataset': 'mnist',
         'dataset_path': {
             'mnist': '../data/mnist',
         },
         'mnist': {
-            'filtering_class': [0, 1, 2, 3, 4, ],
+            'in_class': [0, 1, 2, 3, 4, ],
+            'total_num_class': 10,
         },
 
         # For training/eval
@@ -49,6 +51,9 @@ def init_config():
             'batch_size': 512,
             'num_workers': 4,
         },
+        'eval': {
+            'checkpoint': last,
+        }
 
         # settings of models
         'vae': {

@@ -60,20 +60,27 @@ class PerfEvaluator:
         count_sparsity = result_dict['count_sparsity']
         hoyer = result_dict['hoyer']
         z = result_dict['z'].numpy()
+        log_like = result_dict['log_like'].numpy()
         labels = result_dict['labels'].numpy()
 
         z_sp = (np.absolute(z) > algo_utils.EPS).astype(np.float)
         z_hist = np.zeros((10, z.shape[-1]))
-        for i in self.cfg.mnist.filtering_class:
+
+        in_class = self.cfg.mnist.in_class
+        out_class = set(range(self.cfg.mnist.total_num_class)) - \
+            set(self.cfg.mnist.in_class)
+        for i in in_class:
             z_i = z_sp[labels == i, :]
             pat = np.mean(z_i, axis=0)
             z_hist[i, :] = pat
 
-        for i in set(range(10)) - set(self.cfg.mnist.filtering_class):
+        for i in out_class:
             z_i = z_sp[labels == i, :]
             pat = np.mean(z_i, axis=0)
             z_hist[i, :] = pat
         z_hist = np.expand_dims(z_hist, axis=0)
+
+        in_out_class_roc(in_class, out_class, log_like, labels)
 
         writer.add_scalar('val/count_sparsity', count_sparsity, global_step)
         writer.add_scalar('val/hoyer', hoyer, global_step)
@@ -118,6 +125,7 @@ class PerfEvaluator:
         last_ys = None
         all_z = []
         labels = []
+        log_likes = []
         model.eval()
         with torch.no_grad():
             pbar = tqdm(total=len(dataloader))
@@ -131,6 +139,7 @@ class PerfEvaluator:
                 last_ys = log['y'].detach().cpu()
                 all_z.extend(log['z'].unsqueeze(dim=0).detach().cpu())
                 labels.append(lbs.detach().cpu())
+                log_likes.append(log['log_like'].detach().cpu())
 
                 pbar.update(1)
 
@@ -147,6 +156,7 @@ class PerfEvaluator:
             'y': last_ys,
             'z': torch.cat(all_z),
             'labels': torch.cat(labels),
+            'log_like': torch.cat(log_likes),
         }
 
 
@@ -175,3 +185,12 @@ class PerfEvaluator:
 
     def print_result(self, result_dict, files):
         pass
+
+    def in_out_class_roc(in_class, out_class, log_like, labels):
+        from sklearn.metrics import roc_curve, auc
+        gt = np.zeros_like(labels)
+        for i in in_class:
+            gt[labels == i, :] = 1
+        fpr, tpr, _ = roc_curve(gt, log_like)
+        roc_auc = auc(fpr, tpr)
+        print('roc_auc', roc_auc)

@@ -41,13 +41,13 @@ def parse_args():
     if args.opts:
         cfg.merge_from_list(args.opts)
 
-    return cfg, args.mode 
+    return cfg, args.mode
 
 
 def main():
     commands = {
         'train': command.train,
-        #'eval': command.eval,
+        'eval': command.test,
     }
     cfg, task = parse_args()
     utils.set_seed(cfg)
