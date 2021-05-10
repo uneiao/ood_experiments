@@ -15,7 +15,7 @@ from utils import Checkpointer, MetricLogger
 from viz import get_vislogger
 
 
-def train(cfg):
+def evaluate(cfg):
 
     print('Experiment name:', cfg.exp_name)
     print('Dataset:', cfg.dataset)
@@ -46,7 +46,7 @@ def train(cfg):
         checkpoint = checkpointer.load(
             cfg.resume_ckpt, model, None, None, use_cpu)
     elif cfg.eval.checkpoint == 'last':
-        checkpoint = checkpointer.load_last('', model, None, None, use_cpu)
+        checkpoint = checkpointer.load_last('', model, None, use_cpu)
     elif cfg.eval.checkpoint == 'best':
         checkpoint = checkpointer.load_best(
             cfg.eval.metric, model, None, None, use_cpu)
@@ -60,4 +60,4 @@ def train(cfg):
         'exp_name': cfg.exp_name
     }
     evaluator.test_eval(
-        model, testset, testset.bb_path, cfg.device, evaldir, info)
+        model, testset, cfg.device, evaldir, info)

@@ -45,6 +45,7 @@ class VizLog:
         writer.add_scalar('{}/loss'.format(mode), loss, global_step=global_step)
         writer.add_scalar('{}/log_like'.format(mode), log_like.item(), global_step=global_step)
         writer.add_scalar('{}/KL'.format(mode), kl.item(), global_step=global_step)
-        writer.add_scalar('{}/z_slab_mean'.format(mode), log.z_slab_mean.mean().item(), global_step=global_step)
-        writer.add_scalar('{}/z_slab_std'.format(mode), log.z_slab_std.mean().item(), global_step=global_step)
+        if 'z_slab_mean' in log:
+            writer.add_scalar('{}/z_slab_mean'.format(mode), log.z_slab_mean.mean().item(), global_step=global_step)
+            writer.add_scalar('{}/z_slab_std'.format(mode), log.z_slab_std.mean().item(), global_step=global_step)
 

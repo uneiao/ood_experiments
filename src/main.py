@@ -47,7 +47,7 @@ def parse_args():
 def main():
     commands = {
         'train': command.train,
-        'eval': command.test,
+        'eval': command.evaluate,
     }
     cfg, task = parse_args()
     utils.set_seed(cfg)

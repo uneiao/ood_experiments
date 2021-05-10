@@ -26,6 +26,8 @@ class CustomizedMNIST(torchvision.datasets.MNIST):
 
         if mode in ['train', 'val']:
             kwargs['train'] = True
+        else:
+            kwargs['train'] = False
 
         super().__init__(*largs, **kwargs)
 

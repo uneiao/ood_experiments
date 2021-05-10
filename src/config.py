@@ -52,20 +52,24 @@ def init_config():
             'num_workers': 4,
         },
         'eval': {
-            'checkpoint': last,
-        }
+            'batch_size': 512,
+            'num_workers': 4,
+
+            'checkpoint': 'last',
+        },
 
         # settings of models
         'vae': {
             'image_shape': (28, 28),
             'z_dim': 784,
             'recon_std': 0.1,
+            'prior_std': 1.0,
         },
 
         'vsc': {
             'image_shape': (28, 28),
             'z_dim': 64,
-            'recon_std': 0.1,
+            'recon_std': 1.0,
             'tonolini_spike_c_start_step': 20000,
             'tonolini_spike_c_end_step': 160000,
             'tonolini_spike_c_start_value': 50,

@@ -4,6 +4,6 @@ model_name: laplace
 dataset: mnist
 
 vae:
-  z_dim: 784
-  prior_std: 0.1
+  z_dim: 64
+  prior_std: 1.0
   recon_std: 0.1

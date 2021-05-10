@@ -26,8 +26,8 @@ class PerfEvaluator:
     @torch.no_grad()
     def test_eval(self, model, testset, device, evaldir, info):
         result_dict = self.eval_targets(
-            model, testset, self.cfg.test.batch_size,
-            self.cfg.test.num_workers, device, num_samples=None
+            model, testset, self.cfg.eval.batch_size,
+            self.cfg.eval.num_workers, device, num_samples=None
         )
         os.makedirs(evaldir, exist_ok=True)
         path = osp.join(
@@ -44,6 +44,7 @@ class PerfEvaluator:
         results = self.train_eval_impl(model, valset, writer, global_step, device)
         #checkpointer.save_best(
         #    'sparseness', results['sparseness'], checkpoint, min_is_better=False)
+        model.train()
 
     @torch.no_grad()
     def train_eval_impl(
@@ -57,33 +58,9 @@ class PerfEvaluator:
             model, valset, self.cfg.train.batch_size, self.cfg.train.num_workers,
             device, num_samples=None, global_step=global_step,
         )
-        count_sparsity = result_dict['count_sparsity']
-        hoyer = result_dict['hoyer']
-        z = result_dict['z'].numpy()
-        log_like = result_dict['log_like'].numpy()
-        labels = result_dict['labels'].numpy()
 
-        z_sp = (np.absolute(z) > algo_utils.EPS).astype(np.float)
-        z_hist = np.zeros((10, z.shape[-1]))
-
-        in_class = self.cfg.mnist.in_class
-        out_class = set(range(self.cfg.mnist.total_num_class)) - \
-            set(self.cfg.mnist.in_class)
-        for i in in_class:
-            z_i = z_sp[labels == i, :]
-            pat = np.mean(z_i, axis=0)
-            z_hist[i, :] = pat
-
-        for i in out_class:
-            z_i = z_sp[labels == i, :]
-            pat = np.mean(z_i, axis=0)
-            z_hist[i, :] = pat
-        z_hist = np.expand_dims(z_hist, axis=0)
-
-        in_out_class_roc(in_class, out_class, log_like, labels)
-
-        writer.add_scalar('val/count_sparsity', count_sparsity, global_step)
-        writer.add_scalar('val/hoyer', hoyer, global_step)
+        writer.add_scalar('val/count_sparsity', result_dict['count_sparsity'], global_step)
+        writer.add_scalar('val/hoyer', result_dict['hoyer'], global_step)
 
         grid_image = make_grid(result_dict['imgs'][:100], 5, normalize=False, pad_value=1)
         writer.add_image('{}/1-image'.format('val'), grid_image, global_step)
@@ -91,7 +68,7 @@ class PerfEvaluator:
         grid_image = make_grid(result_dict['y'][:100], 5, normalize=False, pad_value=1)
         writer.add_image('{}/2-reconstruction'.format('val'), grid_image, global_step)
 
-        writer.add_image('{}/3-z_histogram'.format('val'), z_hist, global_step)
+        writer.add_image('{}/3-z_histogram'.format('val'), result_dict['z_histogram'], global_step)
 
         return result_dict
 
@@ -126,7 +103,7 @@ class PerfEvaluator:
         all_z = []
         labels = []
         log_likes = []
-        model.eval()
+
         with torch.no_grad():
             pbar = tqdm(total=len(dataloader))
             for i, (imgs, lbs) in enumerate(dataloader):
@@ -147,9 +124,7 @@ class PerfEvaluator:
             count_sparsity = algo_utils.avg_count_sparsity(torch.cat(all_z))
             hoyer = algo_utils.hoyer_metric(torch.cat(all_z))
 
-        model.train()
-
-        return {
+        result_dict = {
             'hoyer': hoyer,
             'count_sparsity': count_sparsity,
             'imgs': last_imgs,
@@ -158,6 +133,32 @@ class PerfEvaluator:
             'labels': torch.cat(labels),
             'log_like': torch.cat(log_likes),
         }
+
+        z = result_dict['z'].numpy()
+        log_like = result_dict['log_like'].numpy()
+        labels = result_dict['labels'].numpy()
+
+        z_sp = (np.absolute(z) > algo_utils.EPS).astype(np.float)
+        z_hist = np.zeros((10, z.shape[-1]))
+
+        in_class = self.cfg.mnist.in_class
+        out_class = set(range(self.cfg.mnist.total_num_class)) - \
+            set(self.cfg.mnist.in_class)
+        for i in in_class:
+            z_i = z_sp[labels == i, :]
+            pat = np.mean(z_i, axis=0)
+            z_hist[i, :] = pat
+
+        for i in out_class:
+            z_i = z_sp[labels == i, :]
+            pat = np.mean(z_i, axis=0)
+            z_hist[i, :] = pat
+        z_hist = np.expand_dims(z_hist, axis=0)
+        result_dict['z_histogram'] = z_hist
+
+        auc = self.in_out_class_roc(in_class, out_class, log_like, labels)
+        result_dict['roc_auc'] = auc
+        return result_dict
 
 
     def save_to_json(self, result_dict, json_path, info):
@@ -175,8 +176,9 @@ class PerfEvaluator:
         tosave = OrderedDict([
             ('date', datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('info', info),
-            ('count_sparsity', list(result_dict['count_sparsity'])),
-            ('hoyer', list(result_dict['hoyer'])),
+            ('count_sparsity', result_dict['count_sparsity'].item()),
+            ('hoyer', result_dict['hoyer'].item()),
+            ('roc_auc', result_dict['roc_auc']),
         ])
         with open(json_path, 'w') as f:
             json.dump(tosave, f, indent=2)
@@ -186,11 +188,26 @@ class PerfEvaluator:
     def print_result(self, result_dict, files):
         pass
 
-    def in_out_class_roc(in_class, out_class, log_like, labels):
+    def in_out_class_roc(self, in_class, out_class, log_like, labels):
         from sklearn.metrics import roc_curve, auc
+        def save_fig(fpr, tpr, auc):
+            import matplotlib.pyplot as plt
+            plt.figure()
+            lw = 2
+            plt.plot(fpr, tpr, color='darkorange',
+                     lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
+            plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+            plt.xlim([0.0, 1.0])
+            plt.ylim([0.0, 1.05])
+            plt.xlabel('False Positive Rate')
+            plt.ylabel('True Positive Rate')
+            plt.title('In/out ROC')
+            plt.legend(loc="lower right")
+            plt.savefig('{}.png'.format(self.cfg.exp_name))
         gt = np.zeros_like(labels)
         for i in in_class:
-            gt[labels == i, :] = 1
+            gt[labels == i] = 1
         fpr, tpr, _ = roc_curve(gt, log_like)
         roc_auc = auc(fpr, tpr)
-        print('roc_auc', roc_auc)
+        save_fig(fpr, tpr, roc_auc)
+        return roc_auc 
