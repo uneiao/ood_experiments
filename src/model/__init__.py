@@ -1,5 +1,6 @@
 from .vae import LaplaceVAE, NormalVAE
 from .vsc import VSC
+from .mathieu19a_vae import SparseVAE
 
 __all__ = ['get_model']
 
@@ -11,5 +12,7 @@ def get_model(cfg):
         model = VSC(cfg)
     if cfg.model_name == 'vae':
         model = NormalVAE(cfg)
+    if cfg.model_name == 'mathieu':
+        model = SparseVAE(cfg)
 
     return model

@@ -82,7 +82,21 @@ def init_config():
 
             'prior_spike_prob': 0.1,
             'beta': 1,
-        }
+        },
+
+        'mathieu': {
+            'image_shape': (28, 28),
+            'z_dim': 64,
+            'recon_std': 1.0,
+
+            # sparse prior
+            'gamma': 0.8,
+            'loc':  0.0,
+            'scale': 1.0,
+
+            'beta': 1.0,
+            'alpha': 1.0,
+        },
 
     })
     return cfg
