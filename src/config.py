@@ -88,6 +88,7 @@ def init_config():
             'image_shape': (28, 28),
             'z_dim': 64,
             'recon_std': 1.0,
+            'prior_std': 1.0,
 
             # sparse prior
             'gamma': 0.8,
