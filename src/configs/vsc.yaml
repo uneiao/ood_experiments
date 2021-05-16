@@ -5,6 +5,6 @@ dataset: mnist
 
 vsc:
   z_dim: 64
-  recon_std: 1.0
+  recon_std: 0.1
   prior_spike_prob: 0.1
   beta: 1

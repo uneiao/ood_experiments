@@ -85,8 +85,8 @@ class BaseVAE(nn.Module):
             z_posterior, self.z_prior).flatten(start_dim=1).sum(1)
 
         reg = self.regulariser(
-            pz.sample(torch.Size([x.size(0)])).view(-1, z.size(-1)),
-            z.squeeze(0))
+            self.z_prior.sample(z.shape).squeeze(-1),
+            z)
 
         log_like = self.likelihood(x, x_recon).flatten(start_dim=1).sum(1)
         elbo = log_like - self.cfg.mathieu.beta * kl \

@@ -3,3 +3,7 @@ model_name: mathieu
 
 dataset: mnist
 
+mathieu:
+  z_dim: 64
+  recon_std: 0.1
+  alpha: 100.0
