@@ -50,14 +50,13 @@ class BaseVAE(nn.Module):
 
         self.cfg = cfg
 
-        #self.register_buffer('prior_mean', torch.zeros(1))
-        #self.register_buffer('prior_std', torch.ones(1) * self.cfg.mathieu.prior_std)
-
         self.enc = arch.enc_conv_in28out256_v1()
         self.dec = arch.dec_deconv_out28_v1(self.cfg.mathieu.z_dim)
 
         self.fc21 = nn.Linear(256, self.cfg.mathieu.z_dim)
         self.fc22 = nn.Linear(256, self.cfg.mathieu.z_dim)
+
+        self.regulariser = MMD_DIM()
 
     @property
     def z_prior(self):
@@ -85,10 +84,9 @@ class BaseVAE(nn.Module):
         kl = self.calc_kl_divergence(
             z_posterior, self.z_prior).flatten(start_dim=1).sum(1)
 
-        #reg = regs(
-        #    pz.sample(torch.Size([x.size(0)])).view(-1, z.size(-1)),
-        #    z.squeeze(0))
-        reg = 0
+        reg = self.regulariser(
+            pz.sample(torch.Size([x.size(0)])).view(-1, z.size(-1)),
+            z.squeeze(0))
 
         log_like = self.likelihood(x, x_recon).flatten(start_dim=1).sum(1)
         elbo = log_like - self.cfg.mathieu.beta * kl \
@@ -141,3 +139,38 @@ class SparseVAE(BaseVAE):
         z_posterior = distributions.Normal(location, scale)
         z = z_posterior.rsample()
         return z, z_posterior
+
+
+class MMD_DIM:
+    def __init__(self):
+        self.f = unbiased_empirical_mmd_cauchy
+        self.params = None
+        self.samples = True
+        self.name = 'mmd_dim'
+
+    def __call__(self, i1, i2):
+        """assumes will only be given two inputs (for now)"""
+        return self.f(i1, i2)
+
+
+def unbiased_empirical_mmd_cauchy(X, Y):
+    assert X.shape == Y.shape
+    batch_size, latent_dim = X.shape
+    Xb = X.expand(batch_size, *X.shape)
+    Yb = Y.expand(batch_size, *Y.shape)
+    dists_x = (Xb - Xb.transpose(0, 1)).pow(2)
+    dists_y = (Yb - Yb.transpose(0, 1)).pow(2)
+    dists_c = (Xb - Yb.transpose(0, 1)).pow(2)
+    stats = 0
+    off_diag = 1 - torch.eye(batch_size, device=X.device)
+    off_diag = off_diag.unsqueeze(-1).expand(*off_diag.shape, latent_dim)
+    for scale in [.1, .2, .5, 1., 2., 5.]:
+        C = 2 * scale  # 2 * latent_dim * 1.0 * scale
+        res1 = C / (C + dists_x)
+        res1 += C / (C + dists_y)
+        res1 = off_diag * res1
+        res1 = res1.sum(0).sum(0) / (batch_size - 1)
+        res2 = C / (C + dists_c)
+        res2 = res2.sum(0).sum(0) * 2. / (batch_size)
+        stats += (res1 - res2).sum() # see http://www.gatsby.ucl.ac.uk/~gretton/coursefiles/lecture5_distribEmbed.pdf page 52
+    return stats / batch_size
