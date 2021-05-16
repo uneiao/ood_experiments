@@ -138,7 +138,7 @@ class PerfEvaluator:
         log_like = result_dict['log_like'].numpy()
         labels = result_dict['labels'].numpy()
 
-        z_sp = (np.absolute(z) > algo_utils.EPS).astype(np.float)
+        z_sp = (np.absolute(z) > algo_utils.SPARSE_EPS).astype(np.float)
         z_hist = np.zeros((10, z.shape[-1]))
 
         in_class = self.cfg.mnist.in_class

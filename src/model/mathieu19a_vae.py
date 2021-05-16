@@ -19,10 +19,10 @@ class Sparse(distributions.Distribution):
     def stddev(self):
         return self.gamma * self.alpha + (1 - self.gamma) * self.scale
 
-    def __init__(self, gamma, loc, scale, validate_args=None):
+    def __init__(self, gamma, loc, scale, spike_scale, validate_args=None):
         self.loc, self.scale = broadcast_all(loc, scale)
         self.gamma = gamma
-        self.alpha = torch.tensor(0.05).to(self.loc.device)
+        self.alpha = spike_scale#torch.tensor(spike_scale).to(self.loc.device)
         if isinstance(scale, int):
             batch_shape = torch.Size()
         else:
@@ -123,13 +123,15 @@ class SparseVAE(BaseVAE):
         self.register_buffer('prior_gamma', torch.ones(1) * self.cfg.mathieu.gamma)
         self.register_buffer('prior_loc', torch.ones(1) * self.cfg.mathieu.loc)
         self.register_buffer('prior_scale', torch.ones(1) * self.cfg.mathieu.scale)
+        self.register_buffer('prior_spike_scale', torch.ones(1) * self.cfg.mathieu.spike_scale)
 
     @property
     def z_prior(self):
         return Sparse(
             self.prior_gamma,
             self.prior_loc,
-            self.prior_scale)
+            self.prior_scale,
+            self.prior_spike_scale)
 
     def encode(self, x):
         #h1 = F.relu(self.fc1(x))

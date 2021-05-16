@@ -6,6 +6,7 @@ from torch.distributions import Normal, kl_divergence
 
 
 EPS = 1e-15
+SPARSE_EPS = 1e-2 # 1e-5
 
 
 def linear_annealing(device, step, start_step, end_step, start_value, end_value):
@@ -62,5 +63,5 @@ def hoyer_metric(zs):
     return (math.sqrt(latent_dim) - l1_l2) / (math.sqrt(latent_dim) - 1)
 
 
-def avg_count_sparsity(z, eps=1e-5):
+def avg_count_sparsity(z, eps=SPARSE_EPS):
     return (z.abs() < eps).sum() / torch.ones(z.shape).sum()

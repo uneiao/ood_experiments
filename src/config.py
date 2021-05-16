@@ -94,6 +94,7 @@ def init_config():
             'gamma': 0.8,
             'loc':  0.0,
             'scale': 1.0,
+            'spike_scale': 0.05,
 
             'beta': 1.0,
             'alpha': 1.0,
