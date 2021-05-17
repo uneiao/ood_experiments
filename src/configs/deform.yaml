@@ -1,0 +1,10 @@
+exp_name: deform_vae
+model_name: deform_vae
+
+dataset: mnist
+
+deform_vae:
+  z_dim: 64
+  recon_std: 0.1
+  prior_spike_prob: 0.1
+  beta: 1
