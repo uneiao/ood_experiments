@@ -28,6 +28,10 @@ class DeformVAE(nn.Module):
         offset_x = offset_x.float() * 2 / (W - 1) - 1
         self.register_buffer(
             'meshgrid', torch.stack((offset_x, offset_y), dim=0).float())
+        self.register_buffer(
+            'integral_filter_x', torch.FloatTensor(1, 1, 1, W))
+        self.register_buffer(
+            'integral_filter_y', torch.FloatTensor(1, 1, 1, H))
 
         self.enc = arch.enc_conv_in28out256_v1()
         self.fc_what_loc = nn.Sequential(
@@ -133,9 +137,19 @@ class DeformVAE(nn.Module):
         x = torch.sigmoid(x)
 
         # warping
+        H, W = self.cfg.deform_vae.image_shape
         w = self.dec_warp(z_warp.view(z_warp.size(0), -1, 1, 1))
-        flow = torch.tanh(w)
-        grid = (flow + self.meshgrid).clamp(min=-1.0, max=1.0).permute(0, 2, 3, 1)
+        flow = torch.sigmoid(w)
+        integral_x = F.conv_transpose2d(
+            flow[:, 0, :, :], self.integral_filter_x, stride=1, padding=0
+        ) * 4 / W - 1 # double in range and shift back: [0, 1] -> [0, 2] -> [-1, 1]
+        integral_y = F.conv_transpose2d(
+            flow[:, 1, :, :], self.integral_filter_y, stride=1, padding=0
+        ) * 4 / H - 1
+        meshgrid = torch.cat((
+            integral_x[:, :, 0:H, 0:W],
+            integral_y[:, :, 0:H, 0:W]), 1)
+        grid = nn.Hardtanh(meshgrid).permute(0, 2, 3, 1)
         x = F.grid_sample(x, grid, align_corners=False)
 
         return x
