@@ -22,7 +22,7 @@ class DeformVAE(nn.Module):
         self.register_buffer('prior_warp_mean', torch.zeros(1))
         self.register_buffer('prior_warp_std', torch.ones(1))
 
-        H, W = self.cfg.vsc.image_shape
+        H, W = self.cfg.deform_vae.image_shape
         offset_y, offset_x = torch.meshgrid([torch.arange(H), torch.arange(W)])
         offset_y = offset_y.float() * 2 / (H - 1) - 1
         offset_x = offset_x.float() * 2 / (W - 1) - 1
@@ -33,59 +33,59 @@ class DeformVAE(nn.Module):
         self.fc_what_loc = nn.Sequential(
             nn.Linear(256, 256),
             nn.CELU(),
-            nn.Linear(256, self.cfg.vsc.z_dim),
+            nn.Linear(256, self.cfg.deform_vae.z_dim),
         )
         self.fc_what_scale = nn.Sequential(
             nn.Linear(256, 256),
             nn.CELU(),
-            nn.Linear(256, self.cfg.vsc.z_dim),
+            nn.Linear(256, self.cfg.deform_vae.z_dim),
         )
         self.fc_what_spike = nn.Sequential(
             nn.Linear(256, 256),
             nn.CELU(),
             #nn.Dropout(),
-            nn.Linear(256, self.cfg.vsc.z_dim),
+            nn.Linear(256, self.cfg.deform_vae.z_dim),
         )
 
         self.fc_warp_loc = nn.Sequential(
-            nn.Linear(256, 256),
+            nn.Linear(256 + self.cfg.deform_vae.z_dim, 256),
             nn.CELU(),
-            nn.Linear(256, self.cfg.vsc.z_dim),
+            nn.Linear(256, self.cfg.deform_vae.z_dim),
         )
         self.fc_warp_scale = nn.Sequential(
-            nn.Linear(256, 256),
+            nn.Linear(256 + self.cfg.deform_vae.z_dim, 256),
             nn.CELU(),
-            nn.Linear(256, self.cfg.vsc.z_dim),
+            nn.Linear(256, self.cfg.deform_vae.z_dim),
         )
 
-        self.dec = arch.dec_deconv_out28_v1(self.cfg.vsc.z_dim)
-        self.dec_warp = arch.dec_deconv_out28_v2(self.cfg.vsc.z_dim, out_channel=2)
+        self.dec = arch.dec_deconv_out28_v1(self.cfg.deform_vae.z_dim)
+        self.dec_warp = arch.dec_deconv_out28_v2(self.cfg.deform_vae.z_dim, out_channel=2)
 
         self.spike_mode = 'tonolini_original'
         self.register_buffer(
             'tonolini_spike_c',
-            torch.tensor(self.cfg.vsc.tonolini_spike_c_start_value))
+            torch.tensor(self.cfg.deform_vae.tonolini_spike_c_start_value))
         self.register_buffer(
             'tonolini_lambda',
-            torch.tensor(self.cfg.vsc.tonolini_lambda_start_value))
+            torch.tensor(self.cfg.deform_vae.tonolini_lambda_start_value))
 
         # fixed prior
         self.register_buffer(
-            'prior_spike_prob', torch.tensor(self.cfg.vsc.prior_spike_prob))
+            'prior_spike_prob', torch.tensor(self.cfg.deform_vae.prior_spike_prob))
 
     def annealing(self, global_step):
         self.tonolini_spike_c = linear_annealing(
             self.tonolini_spike_c.device, global_step,
-            self.cfg.vsc.tonolini_spike_c_start_step,
-            self.cfg.vsc.tonolini_spike_c_end_step,
-            self.cfg.vsc.tonolini_spike_c_start_value,
-            self.cfg.vsc.tonolini_spike_c_end_value)
+            self.cfg.deform_vae.tonolini_spike_c_start_step,
+            self.cfg.deform_vae.tonolini_spike_c_end_step,
+            self.cfg.deform_vae.tonolini_spike_c_start_value,
+            self.cfg.deform_vae.tonolini_spike_c_end_value)
         self.tonolini_lambda = linear_annealing(
             self.tonolini_lambda.device, global_step,
-            self.cfg.vsc.tonolini_lambda_start_step,
-            self.cfg.vsc.tonolini_lambda_end_step,
-            self.cfg.vsc.tonolini_lambda_start_value,
-            self.cfg.vsc.tonolini_lambda_end_value)
+            self.cfg.deform_vae.tonolini_lambda_start_step,
+            self.cfg.deform_vae.tonolini_lambda_end_step,
+            self.cfg.deform_vae.tonolini_lambda_start_value,
+            self.cfg.deform_vae.tonolini_lambda_end_value)
 
     @property
     def z_slab_prior(self):
@@ -103,7 +103,7 @@ class DeformVAE(nn.Module):
         z_what_slab_posterior = Normal(
             self.tonolini_lambda * z_what_location,
             self.tonolini_lambda * z_what_scale - self.tonolini_lambda + 1.0)
-        z_slab = z_slab_posterior.rsample()
+        z_slab = z_what_slab_posterior.rsample()
 
         # compute the spike variables.
         if self.spike_mode == 'tonolini_original':
@@ -113,12 +113,13 @@ class DeformVAE(nn.Module):
             #spike = torch.sigmoid(self.fc23(h1)) # notice here the spike is the actual Bernoulli prob
             eta = torch.rand_like(spike)
             # ugly relaxations
-            sampled_gamma = F.sigmoid(self.tonolini_spike_c * (eta + spike - 1)) # also called as 'selection'
+            sampled_gamma = torch.sigmoid(self.tonolini_spike_c * (eta + spike - 1)) # also called as 'selection'
             z_what_spike_posterior = spike
 
         z_what = z_slab * sampled_gamma
 
-        z_warp_location, z_warp_scale = self.fc_warp_loc(h1), self.fc_warp_scale(h1)
+        h1_cat = torch.cat((h1, z_what), axis=1)
+        z_warp_location, z_warp_scale = self.fc_warp_loc(h1_cat), self.fc_warp_scale(h1_cat)
         z_warp_scale = F.softplus(z_warp_scale)
         z_warp_posterior = Normal(z_warp_location, z_warp_scale)
         z_warp = z_warp_posterior.rsample()
@@ -133,9 +134,9 @@ class DeformVAE(nn.Module):
 
         # warping
         w = self.dec_warp(z_warp.view(z_warp.size(0), -1, 1, 1))
-        flow = torch.tanh(w).permute(0, 2, 3, 1)
-        grid = (flow + self.meshgrid).clamp(min=-1.0, max=1.0)
-        x = F.grid_sample(x, grid)
+        flow = torch.tanh(w)
+        grid = (flow + self.meshgrid).clamp(min=-1.0, max=1.0).permute(0, 2, 3, 1)
+        x = F.grid_sample(x, grid, align_corners=False)
 
         return x
 
@@ -162,7 +163,7 @@ class DeformVAE(nn.Module):
                 + kl_warp.flatten(start_dim=1).sum(1)
 
         log_like = self.likelihood(x, x_recon).flatten(start_dim=1).sum(1)
-        elbo = log_like - self.cfg.vsc.beta * kl
+        elbo = log_like - self.cfg.deform_vae.beta * kl
         loss = -elbo
 
         log = {
