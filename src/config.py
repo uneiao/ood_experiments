@@ -114,6 +114,11 @@ def init_config():
             'tonolini_lambda_start_value': 0.0,
             'tonolini_lambda_end_value': 1.0,
 
+            'warp_prevention_start_step': 160000,
+            'warp_prevention_end_step': 200000,
+            'warp_prevention_start_value': 0.0,
+            'warp_prevention_end_value': 1.0,
+
             'prior_spike_prob': 0.1,
             'beta': 1,
         },

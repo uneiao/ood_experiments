@@ -31,7 +31,7 @@ class DeformVAE(nn.Module):
         self.register_buffer(
             'integral_filter_x', torch.ones((1, 1, 1, W)))
         self.register_buffer(
-            'integral_filter_y', torch.ones((1, 1, 1, H)))
+            'integral_filter_y', torch.ones((1, 1, H, 1)))
 
         self.enc = arch.enc_conv_in28out256_v1()
         self.fc_what_loc = nn.Sequential(
@@ -72,6 +72,9 @@ class DeformVAE(nn.Module):
         self.register_buffer(
             'tonolini_lambda',
             torch.tensor(self.cfg.deform_vae.tonolini_lambda_start_value))
+        self.register_buffer(
+            'warp_prevention',
+            torch.tensor(self.cfg.deform_vae.warp_prevention_start_value))
 
         # fixed prior
         self.register_buffer(
@@ -90,6 +93,12 @@ class DeformVAE(nn.Module):
             self.cfg.deform_vae.tonolini_lambda_end_step,
             self.cfg.deform_vae.tonolini_lambda_start_value,
             self.cfg.deform_vae.tonolini_lambda_end_value)
+        self.warp_prevention = linear_annealing(
+            self.warp_prevention.device, global_step,
+            self.cfg.deform_vae.warp_prevention_start_step,
+            self.cfg.deform_vae.warp_prevention_end_step,
+            self.cfg.deform_vae.warp_prevention_start_value,
+            self.cfg.deform_vae.warp_prevention_end_value)
 
     @property
     def z_slab_prior(self):
@@ -137,15 +146,16 @@ class DeformVAE(nn.Module):
         x = torch.sigmoid(x)
 
         # warping
+        B = x.size(0)
         H, W = self.cfg.deform_vae.image_shape
         w = self.dec_warp(z_warp.view(z_warp.size(0), -1, 1, 1))
-        flow = torch.sigmoid(w)
-        integral_x = F.conv_transpose2d(
+        flow = torch.sigmoid(w * self.warp_prevention)
+        integral_x = (F.conv_transpose2d(
             flow[:, 0, :, :].unsqueeze(1), self.integral_filter_x, stride=1, padding=0
-        ) * 4 / W - 1 # double in range and shift back: [0, 1] -> [0, 2] -> [-1, 1]
-        integral_y = F.conv_transpose2d(
+        ) * 2 - 1) / ((W - 1) / 2) - 1 # double in range and shift back: [0, 1] -> [0, 2] -> [-1, 1]
+        integral_y = (F.conv_transpose2d(
             flow[:, 1, :, :].unsqueeze(1), self.integral_filter_y, stride=1, padding=0
-        ) * 4 / H - 1
+        ) * 2 - 1) / ((H - 1) / 2) - 1
         meshgrid = torch.cat((
             integral_x[:, :, 0:H, 0:W],
             integral_y[:, :, 0:H, 0:W]), 1)
