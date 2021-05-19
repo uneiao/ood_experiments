@@ -61,6 +61,7 @@ class PerfEvaluator:
 
         writer.add_scalar('val/count_sparsity', result_dict['count_sparsity'], global_step)
         writer.add_scalar('val/hoyer', result_dict['hoyer'], global_step)
+        writer.add_scalar('val/roc_auc', result_dict['roc_auc'], global_step)
 
         grid_image = make_grid(result_dict['imgs'][:100], 5, normalize=False, pad_value=1)
         writer.add_image('{}/1-image'.format('val'), grid_image, global_step)
@@ -160,7 +161,6 @@ class PerfEvaluator:
         result_dict['roc_auc'] = auc
         return result_dict
 
-
     def save_to_json(self, result_dict, json_path, info):
         """
         Save evaluation results to json file
@@ -188,7 +188,7 @@ class PerfEvaluator:
     def print_result(self, result_dict, files):
         pass
 
-    def in_out_class_roc(self, in_class, out_class, log_like, labels):
+    def in_out_class_roc(self, in_class, out_class, scores, labels):
         from sklearn.metrics import roc_curve, auc
         def save_fig(fpr, tpr, auc):
             import matplotlib.pyplot as plt
@@ -207,7 +207,7 @@ class PerfEvaluator:
         gt = np.zeros_like(labels)
         for i in in_class:
             gt[labels == i] = 1
-        fpr, tpr, _ = roc_curve(gt, log_like)
+        fpr, tpr, _ = roc_curve(gt, scores)
         roc_auc = auc(fpr, tpr)
-        save_fig(fpr, tpr, roc_auc)
+        #save_fig(fpr, tpr, roc_auc)
         return roc_auc 

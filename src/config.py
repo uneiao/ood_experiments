@@ -105,17 +105,17 @@ def init_config():
             'z_dim': 64,
             'recon_std': 1.0,
             'tonolini_spike_c_start_step': 20000,
-            'tonolini_spike_c_end_step': 160000,
+            'tonolini_spike_c_end_step': 80000,
             'tonolini_spike_c_start_value': 50,
             'tonolini_spike_c_end_value': 1000,
 
-            'tonolini_lambda_start_step': 160000,
-            'tonolini_lambda_end_step': 200000,
+            'tonolini_lambda_start_step': 80000,
+            'tonolini_lambda_end_step': 100000,
             'tonolini_lambda_start_value': 0.0,
             'tonolini_lambda_end_value': 1.0,
 
-            'warp_prevention_start_step': 160000,
-            'warp_prevention_end_step': 200000,
+            'warp_prevention_start_step': 80000,
+            'warp_prevention_end_step': 100000,
             'warp_prevention_start_value': 0.0,
             'warp_prevention_end_value': 1.0,
 

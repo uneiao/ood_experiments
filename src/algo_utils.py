@@ -58,8 +58,8 @@ def hoyer_metric(zs):
     see section 6.3 of http://proceedings.mlr.press/v97/mathieu19a/mathieu19a.pdf
     '''
     latent_dim = zs.size(-1)
-    zs = zs / zs.std(0)
-    l1_l2 = (zs.abs().sum(-1) / zs.pow(2).sum(-1).sqrt()).mean()
+    zs = zs / (zs.std(0) + EPS)
+    l1_l2 = (zs.abs().sum(-1) / (zs.pow(2).sum(-1).sqrt() + EPS)).mean()
     return (math.sqrt(latent_dim) - l1_l2) / (math.sqrt(latent_dim) - 1)
 
 

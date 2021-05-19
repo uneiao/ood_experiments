@@ -34,6 +34,9 @@ class VizLog:
         grid_image = make_grid(log.y, 5, normalize=False, pad_value=1)
         writer.add_image('{}/2-reconstruction'.format(mode), grid_image, global_step)
 
+        grid_image = make_grid(log.y2, 5, normalize=False, pad_value=1)
+        writer.add_image('{}/3-undistorted_recon'.format(mode), grid_image, global_step)
+
         mse = (log.y - log.imgs) ** 2
         mse = mse.flatten(start_dim=1).sum(dim=1).mean(dim=0)
         log_like, kl = (

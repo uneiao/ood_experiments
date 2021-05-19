@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.utils.data
 from torch import nn, optim
@@ -5,7 +7,7 @@ from torch.distributions import Normal, Laplace, Cauchy, kl_divergence
 from torch.nn import functional as F
 
 from algo_utils import linear_annealing, kl_divergence_bern_bern, \
-    kl_divergence_spike_slab
+    kl_divergence_spike_slab, EPS
 from . import arch
 
 
@@ -63,7 +65,7 @@ class DeformVAE(nn.Module):
         )
 
         self.dec = arch.dec_deconv_out28_v1(self.cfg.deform_vae.z_dim)
-        self.dec_warp = arch.dec_deconv_out28_v2(self.cfg.deform_vae.z_dim, out_channel=2)
+        self.dec_warp = arch.dec_deconv_out28_v1(self.cfg.deform_vae.z_dim, out_channel=2)
 
         self.spike_mode = 'tonolini_original'
         self.register_buffer(
@@ -111,11 +113,13 @@ class DeformVAE(nn.Module):
     def encode(self, x):
         h1 = F.relu(self.enc(x)).view(x.size(0), -1)
 
+        power_lambda = torch.pow(self.tonolini_lambda, 1.0 / 8)
+
         z_what_location, z_what_scale = self.fc_what_loc(h1), self.fc_what_scale(h1)
         z_what_scale = F.softplus(z_what_scale)
         z_what_slab_posterior = Normal(
-            self.tonolini_lambda * z_what_location,
-            self.tonolini_lambda * z_what_scale - self.tonolini_lambda + 1.0)
+            power_lambda * z_what_location,
+            power_lambda * z_what_scale - power_lambda + 1.0 + EPS)
         z_slab = z_what_slab_posterior.rsample()
 
         # compute the spike variables.
@@ -160,9 +164,9 @@ class DeformVAE(nn.Module):
             integral_x[:, :, 0:H, 0:W],
             integral_y[:, :, 0:H, 0:W]), 1)
         grid = nn.Hardtanh()(meshgrid).permute(0, 2, 3, 1)
-        x = F.grid_sample(x, grid, align_corners=False)
+        wx = F.grid_sample(x, grid, align_corners=False)
 
-        return x
+        return wx, x
 
     def likelihood(self, x, x_p):
         return Normal(x_p, self.cfg.vae.recon_std).log_prob(x)
@@ -175,7 +179,7 @@ class DeformVAE(nn.Module):
         z_what, z_slab_posterior, spike_posterior, \
                 z_warp, z_warp_posterior = self.encode(x)
 
-        x_recon = self.decode(z_what, z_warp)
+        x_recon, undistorted_x = self.decode(z_what, z_warp)
 
         kl1 = kl_divergence_spike_slab(
             z_slab_posterior, self.z_slab_prior, spike_posterior, self.prior_spike_prob)
@@ -195,6 +199,7 @@ class DeformVAE(nn.Module):
             'log_like': log_like,
             'imgs': x,
             'y': x_recon.view(B, C, H, W),
+            'y2': undistorted_x.view(B, C, H, W),
             'loss': loss,
             'elbo': elbo,
             'z': z_what,
