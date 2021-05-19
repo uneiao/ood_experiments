@@ -62,6 +62,7 @@ class PerfEvaluator:
         writer.add_scalar('val/count_sparsity', result_dict['count_sparsity'], global_step)
         writer.add_scalar('val/hoyer', result_dict['hoyer'], global_step)
         writer.add_scalar('val/roc_auc', result_dict['roc_auc'], global_step)
+        writer.add_scalar('val/in_class_log_like', result_dict['in_class_log_like'], global_step)
 
         grid_image = make_grid(result_dict['imgs'][:100], 5, normalize=False, pad_value=1)
         writer.add_image('{}/1-image'.format('val'), grid_image, global_step)
@@ -125,6 +126,7 @@ class PerfEvaluator:
             count_sparsity = algo_utils.avg_count_sparsity(torch.cat(all_z))
             hoyer = algo_utils.hoyer_metric(torch.cat(all_z))
 
+
         result_dict = {
             'hoyer': hoyer,
             'count_sparsity': count_sparsity,
@@ -134,6 +136,8 @@ class PerfEvaluator:
             'labels': torch.cat(labels),
             'log_like': torch.cat(log_likes),
         }
+        inclass_log_like = result_dict['log_like'][result_dict['labels'] <= 4].mean()
+        result_dict['inclass_log_like'] = in_class_log_like
 
         z = result_dict['z'].numpy()
         log_like = result_dict['log_like'].numpy()
@@ -179,6 +183,7 @@ class PerfEvaluator:
             ('count_sparsity', result_dict['count_sparsity'].item()),
             ('hoyer', result_dict['hoyer'].item()),
             ('roc_auc', result_dict['roc_auc']),
+            ('inclass_log_like', result_dict['inclass_log_like']),
         ])
         with open(json_path, 'w') as f:
             json.dump(tosave, f, indent=2)
@@ -210,4 +215,4 @@ class PerfEvaluator:
         fpr, tpr, _ = roc_curve(gt, scores)
         roc_auc = auc(fpr, tpr)
         #save_fig(fpr, tpr, roc_auc)
-        return roc_auc 
+        return roc_auc
