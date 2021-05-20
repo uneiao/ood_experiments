@@ -62,7 +62,7 @@ class PerfEvaluator:
         writer.add_scalar('val/count_sparsity', result_dict['count_sparsity'], global_step)
         writer.add_scalar('val/hoyer', result_dict['hoyer'], global_step)
         writer.add_scalar('val/roc_auc', result_dict['roc_auc'], global_step)
-        writer.add_scalar('val/in_class_log_like', result_dict['in_class_log_like'], global_step)
+        writer.add_scalar('val/inclass_log_like', result_dict['inclass_log_like'], global_step)
 
         grid_image = make_grid(result_dict['imgs'][:100], 5, normalize=False, pad_value=1)
         writer.add_image('{}/1-image'.format('val'), grid_image, global_step)
@@ -137,7 +137,7 @@ class PerfEvaluator:
             'log_like': torch.cat(log_likes),
         }
         inclass_log_like = result_dict['log_like'][result_dict['labels'] <= 4].mean()
-        result_dict['inclass_log_like'] = in_class_log_like
+        result_dict['inclass_log_like'] = inclass_log_like.item()
 
         z = result_dict['z'].numpy()
         log_like = result_dict['log_like'].numpy()
