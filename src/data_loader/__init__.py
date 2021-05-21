@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from .mnist import CustomizedMNIST
+from .celeba import CustomizedCelebA
 
 
 __all__ = ['get_dataset', 'get_dataloader']
@@ -14,6 +15,17 @@ def get_dataset(cfg, mode):
             cfg.dataset_path.mnist,
             mode=mode,
             filtering_class=cfg.mnist.in_class,
+            download=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+            ]),
+        )
+    if cfg.dataset == 'celeba':
+        if mode == 'val':
+            val = 'valid'
+        return torchvision.datasets.CelebA(
+            cfg.dataset_path.celeba,
+            split=mode,
             download=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),

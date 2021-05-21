@@ -19,6 +19,7 @@ def init_config():
         'dataset': 'mnist',
         'dataset_path': {
             'mnist': '../data/mnist',
+            'celeba': '../data/celeba',
         },
         'mnist': {
             'in_class': [0, 1, 2, 3, 4, ],
