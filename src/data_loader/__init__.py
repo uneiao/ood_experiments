@@ -1,8 +1,9 @@
 from torch.utils.data import DataLoader
+import torchvision
 from torchvision import transforms
 
 from .mnist import CustomizedMNIST
-from .celeba import CustomizedCelebA
+from .cifar import CustomizedCIFAR10
 
 
 __all__ = ['get_dataset', 'get_dataloader']
@@ -26,6 +27,18 @@ def get_dataset(cfg, mode):
         return torchvision.datasets.CelebA(
             cfg.dataset_path.celeba,
             split=mode,
+            download=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+            ]),
+        )
+    if cfg.dataset == 'cifar10':
+        if mode == 'val':
+            val = 'valid'
+        return CustomizedCIFAR10(
+            cfg.dataset_path.cifar10,
+            mode=mode,
+            filtering_class=cfg.cifar10.in_class,
             download=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
