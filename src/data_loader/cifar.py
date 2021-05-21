@@ -19,7 +19,7 @@ class CustomizedCIFAR10(torchvision.datasets.CIFAR10):
 
         mode = kwargs.pop('mode')
 
-        split = kwargs.pop('train_val_split', [50000, 10000])
+        split = kwargs.pop('train_val_split', [40000, 10000])
 
         filtering_class = kwargs.pop('filtering_class', [])
 
@@ -35,7 +35,7 @@ class CustomizedCIFAR10(torchvision.datasets.CIFAR10):
                 random_split(range(len(self)), split)
             )
             indices = _train.indices if mode == 'train' else _val.indices
-            self.data, self.targets = self.data[indices], self.targets[indices]
+            self.data, self.targets = self.data[indices], np.array(self.targets)[indices]
 
         if mode == 'train' and len(filtering_class):
             mask = [1 if self.targets[i] in filtering_class else 0 for i in range(len(self.targets))]

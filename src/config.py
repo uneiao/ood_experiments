@@ -20,8 +20,13 @@ def init_config():
         'dataset_path': {
             'mnist': '../data/mnist',
             'celeba': '../data/celeba',
+            'cifar10': '../data/cifar10',
         },
         'mnist': {
+            'in_class': [0, 1, 2, 3, 4, ],
+            'total_num_class': 10,
+        },
+        'cifar10': {
             'in_class': [0, 1, 2, 3, 4, ],
             'total_num_class': 10,
         },
@@ -122,6 +127,10 @@ def init_config():
 
             'prior_spike_prob': 0.1,
             'beta': 1,
+
+            'enc': 'enc_conv_in28out256_v1',
+            'dec': 'dec_deconv_out28_v1',
+            'in_channel': 1,
         },
 
     })

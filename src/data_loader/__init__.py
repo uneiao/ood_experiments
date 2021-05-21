@@ -33,8 +33,6 @@ def get_dataset(cfg, mode):
             ]),
         )
     if cfg.dataset == 'cifar10':
-        if mode == 'val':
-            val = 'valid'
         return CustomizedCIFAR10(
             cfg.dataset_path.cifar10,
             mode=mode,

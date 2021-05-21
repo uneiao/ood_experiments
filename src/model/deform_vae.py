@@ -35,7 +35,8 @@ class DeformVAE(nn.Module):
         self.register_buffer(
             'integral_filter_y', torch.ones((1, 1, H, 1)))
 
-        self.enc = arch.enc_conv_in28out256_v1()
+        self.enc = arch.MODULES[self.cfg.deform_vae.enc](
+            in_channel=self.cfg.deform_vae.in_channel)
         self.fc_what_loc = nn.Sequential(
             nn.Linear(256, 256),
             nn.CELU(),
@@ -64,8 +65,10 @@ class DeformVAE(nn.Module):
             nn.Linear(256, self.cfg.deform_vae.z_dim),
         )
 
-        self.dec = arch.dec_deconv_out28_v1(self.cfg.deform_vae.z_dim)
-        self.dec_warp = arch.dec_deconv_out28_v1(self.cfg.deform_vae.z_dim, out_channel=2)
+        self.dec = arch.MODULES[self.cfg.deform_vae.dec](
+            self.cfg.deform_vae.z_dim, out_channel=self.cfg.deform_vae.in_channel)
+        self.dec_warp = arch.MODULES[self.cfg.deform_vae.dec](
+            self.cfg.deform_vae.z_dim, out_channel=2)
 
         self.spike_mode = 'tonolini_original'
         self.register_buffer(
